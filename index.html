@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 판정 가이드 - 임베드 모듈</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Pretendard', sans-serif; margin: 0; background-color: #f8f7f5; color: #1c1917; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 10px; }
+        .modal-overlay { background: rgba(28, 25, 23, 0.8); backdrop-filter: blur(12px); }
+        strong { @apply font-extrabold text-stone-900; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const TEST_CASES = [
+            { id: 1, imageUrl: "./images/case01.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B1 - 속옷이나 수영복 형태가 아닌, 가슴 사이가 파인 의류", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 중인 사진 X", "Section C (하체): 해당 없음", "신고 거부"] },
+            { id: 2, imageUrl: "./images/case02.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B3 속옷 또는 수영복 형태:", "배경을 100% 확인할 수 없음, 수영복으로 간주", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 줌인 사진 X", "Section C (하체): 해당 없음", "신고 거부"] },
+            { id: 3, imageUrl: "./images/case03.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B4 - 상의가 화면에서 부분적으로 가려져 전체를 확인할 수 없음", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 중인 사진 X", "Section C (하체): 해당 없음", "신고 거부"] },
+            { id: 4, imageUrl: "./images/case04.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B3 - 속옷 또는 수영복 형태", "배경이 해변, 욕실, 온천인 경우, 수영복으로 간주", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 줌인 사진 X", "Section C (하체): C-2 삼각팬티 형태", "배경이 해변, 욕실, 온천", "치골 노출, 실존 인물", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 5, imageUrl: "./images/case05.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B4 - 상의가 화면에서 부분적으로 가려져 전체를 확인할 수 없음", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 중인 사진", "옷으로 가려지지 않은 가슴 면적이 사진 전체(머리 및 배경 제외)의 > 40% 초과", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 6, imageUrl: "./images/case06.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B3 - 속옷 또는 수영복 형태", "배경을 100% 확인할 수 없음, 수영복으로 간주", "가슴의 가장 높은 부위(유두 근처)에 손을 올린", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 7, imageUrl: "./images/case07.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): 해당 없음", "Section C (하체): C-2 삼각팬티 형태", "100% 확실한 일반 실내 공간, 속옷으로 간주", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 8, imageUrl: "./images/case08.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B-4 상의가 화면에서 부분적으로 잘림으로 가려져 전체를 확인할 수 없음", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" > 65%", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 9, imageUrl: "./images/case09.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B-1 속옷이나 수영복 형태가 아님", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" > 65%", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 10, imageUrl: "./images/case10.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B-3 속옷 또는 수영복 형태:", "배경이 해변, 욕실, 온천이 아니나, 일반 실내 공간임이 확실함", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 11, imageUrl: "./images/case11.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B-3 속옷 또는 수영복 형태:", "배경을 100% 확인할 수 없음", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 중인 사진 X", "Section C (하체): C-5 삼각팬티 형태인지 극단적인 짧은 반바지인지 100% 확신할 수 없음 (비고: 해당 스타킹 = 완전히 덮인으로 간주)", "신고 거부"] },
+            { id: 12, imageUrl: "./images/case12.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): 해당 없음", "Section C (하체): C-3 삼각팬티 형태가 아님 (일반 너비의 T팬티)", "엉덩이 살이 부분적으로 가려짐", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 13, imageUrl: "./images/case13.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): 해당 없음", "Section C (하체): C-5 삼각팬티 형태인지 극단적인 짧은 반바지인지 100% 확신할 수 없음 (비고: 허벅지 스타킹 = 일반 복장으로 간주)", "신고 거부"] },
+            { id: 14, imageUrl: "./images/case14.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B1 - 속옷이나 수영복 형태가 아닌 일반 의류", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 줌인 사진 X", "Section C (하체): C-4 엉덩이가 가려졌는지 100% 확인할 수 없는 경우(긴 상의가 엉덩이를 살짝 덮는 등)", "신고 거부"] },
+            { id: 15, imageUrl: "./images/case15.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): 해당 없음", "Section C (하체): C-2 삼각팬티 형태", "배경을 100% 확인할 수 없음", "치골 노출 + 실존 인물 전체 방송", "Level 2, 19+ 방송 - No Violation"] },
+            { id: 16, imageUrl: "./images/case16.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): A-6 성기 부위에 옷을 입었으나 곡선을 통해 명확히 식별 가능", "일러스트/마네킹(실물과 비교 시 신체 비율, 렌더링 스타일, 질감의 사실적 비율이 80% 초과)", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 17, imageUrl: "./images/case17.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B1 - 속옷이나 수영복 형태가 아닌 일반 의류", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 줌인 사진 X", "Section C (하체): C-4 엉덩이가 가려졌는지 100% 확인할 수 없는 경우(긴 상의가 엉덩이를 살짝 덮는 등)", "신고 거부"] },
+            { id: 18, imageUrl: "./images/case18.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): 해당 없음", "Section C (하체): C-3 삼각팬티 형태가 아니거나 옷/물체/신체 부위로 가려진 경우:", "엉덩이 살이 부분적으로 가려진 경우(일반 너비 T팬티, 시스루, 망사 스타킹, 서스펜더 스타킹, 성인용 의상, 코스프레 의상)", "신고 거부"] },
+            { id: 19, imageUrl: "./images/case19.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): A-7 뒷모습 엉덩이가 옷을 입지 않고 완전히 노출", "일러스트/마네킹(실물과 비교 시 신체 비율, 렌더링 스타일, 질감의 사실적 비율이 80% 초과)", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 20, imageUrl: "./images/case20.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B-1 속옷이나 수영복 형태가 아님 (가슴 사이가 파인 의류)", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 줌인 사진 X", "Section C (하체): C-2 삼각팬티 형태", "배경이 100% 해변", "치골 노출 + 일러스트/마네킹", "No Violation, 19+ 방송 - No Violation"] },
+            { id: 21, imageUrl: "./images/case21.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B-3 속옷 또는 수영복 형태", "배경이 해변", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 줌인 사진 X", "Section C (하체): C-2 삼각팬티 형태", "배경이 100% 해변", "치골 노출 + 실존 인물", "전체 방송 - Level 2, 19+ 방송 - No Violation"] }
+        ];
+
+        const LANGUAGES = {
+            KR: { title: "이미지 판정 예시", detail: "판단 로직 상세 경로", close: "닫기", path_btn: "경로 상세 확인", broadcast: "방송", final_result: "최종 판정 결과", nv: "신고 거부", lv: "Level" },
+            JP: { title: "画像判定例示", detail: "判定ロジック詳細経路", close: "閉じる", path_btn: "経路詳細を確認", broadcast: "放送", final_result: "最終判定結果", nv: "申告拒否", lv: "レベル" },
+            ZH: { title: "圖像判定範例", detail: "邏輯判斷詳細路徑", close: "關閉", path_btn: "查看詳細路徑", broadcast: "直播", final_result: "最終判定結果", nv: "無違規", lv: "等級" }
+        };
+
+        const App = () => {
+            const [lang, setLang] = useState('ZH'); 
+            const [modalCase, setModalCase] = useState(null);
+
+            const t = LANGUAGES[lang];
+
+            const isPureNoViolation = (text) => {
+                const lowerText = text.toLowerCase();
+                const containsSafeWord = lowerText.includes("no violation") || lowerText.includes("신고 거부") || (lang === 'ZH' && lowerText.includes("無違規")) || (lang === 'JP' && lowerText.includes("申告拒否"));
+                const containsPenaltyWord = lowerText.includes("level") || lowerText.includes("등급") || lowerText.includes("等級") || lowerText.includes("レベル");
+                return containsSafeWord && !containsPenaltyWord;
+            };
+
+            const translateText = (text) => {
+                let formatted = text;
+                formatted = formatted.replace(/No Violation/g, t.nv);
+                formatted = formatted.replace(/신고 거부/g, t.nv);
+
+                if (lang === 'ZH') {
+                    formatted = formatted.replace(/전체/g, '全體')
+                                       .replace(/방송/g, '直播')
+                                       .replace(/해당 없음/g, '無相關')
+                                       .replace(/Level/g, '等級');
+                } else if (lang === 'JP') {
+                    formatted = formatted.replace(/전체/g, '全体')
+                                       .replace(/방송/g, '放送')
+                                       .replace(/해당 없음/g, '該当なし')
+                                       .replace(/Level/g, 'レベル');
+                }
+                return formatted;
+            };
+
+            const formatPathText = (text) => {
+                const prefixes = ["공통 원칙:", "Section A", "Section B", "Section C", "전체 방송", "19+ 방송", "전체直播", "19+直播", "전체 放送", "19+ 放送", "全體直播", "19+直播", "全体放送", "19+放送", "等級", "레벨", "Level", "無相關", "無違規", "申告拒否", "該当なし"];
+                let translated = translateText(text);
+                
+                let htmlContent = translated;
+                prefixes.forEach(p => {
+                    if (htmlContent.includes(p)) {
+                        htmlContent = htmlContent.replace(p, `<strong>${p}</strong>`);
+                    }
+                });
+                return <span dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+            };
+
+            return (
+                <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
+                    <div className="flex flex-col md:flex-row justify-between items-center md:items-end mb-12 gap-6">
+                        <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                            <h1 className="text-3xl md:text-5xl font-black tracking-tighter mb-2">{t.title}</h1>
+                            <p className="text-stone-500 text-sm md:text-lg font-medium opacity-80">Reference Guidelines for Content Moderation</p>
+                        </div>
+                        <div className="flex space-x-1 bg-stone-200/50 p-1 rounded-xl border border-stone-200">
+                            {Object.keys(LANGUAGES).map(l => (
+                                <button key={l} onClick={() => setLang(l)} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white shadow text-orange-600' : 'text-stone-500'}`}>
+                                    {l === 'KR' ? 'KR' : l === 'JP' ? 'JP' : 'ZH'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+                        {TEST_CASES.map((item) => {
+                            const finalStep = item.path[item.path.length - 1];
+                            const safe = isPureNoViolation(finalStep);
+
+                            return (
+                                <div key={item.id} className="bg-white border border-stone-200 transition-all duration-300 shadow-sm flex flex-col h-full rounded-[2.5rem] overflow-hidden group hover:-translate-y-2 hover:shadow-xl">
+                                    <div className="aspect-[3/4] bg-stone-100 flex items-center justify-center relative flex-shrink-0 overflow-hidden border-b border-stone-50">
+                                        {item.imageUrl ? (
+                                            <img src={item.imageUrl} alt={`Case ${item.id}`} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-stone-300 font-black text-2xl uppercase tracking-tighter">Case {item.id}</span>
+                                        )}
+                                        <div className="absolute top-4 left-4 bg-stone-900/90 text-white text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest">IMAGE {item.id}</div>
+                                    </div>
+                                    <div className="p-6 md:p-8 flex flex-col flex-grow">
+                                        <div className="mb-6 flex-grow">
+                                            <div className="text-[10px] text-stone-400 font-black uppercase tracking-wider mb-2">{t.final_result}</div>
+                                            <div className={`text-base md:text-lg font-bold leading-snug ${safe ? 'text-green-600' : 'text-orange-600'}`}>
+                                                {translateText(finalStep)}
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setModalCase(item)} className="w-full py-4 bg-orange-500 text-white rounded-2xl text-xs font-black hover:bg-orange-600 transition-all shadow-md uppercase tracking-widest">
+                                            {t.path_btn}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {modalCase && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay">
+                            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                                <div className="p-8 md:p-10 overflow-y-auto">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-2xl font-black tracking-tighter">{t.detail}</h3>
+                                        <button onClick={() => setModalCase(null)} className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center text-stone-500">✕</button>
+                                    </div>
+                                    <div className="mb-8 aspect-[3/4] max-h-[250px] mx-auto bg-stone-50 rounded-2xl overflow-hidden flex items-center justify-center relative border border-stone-100 shadow-inner">
+                                        {modalCase.imageUrl ? (
+                                            <img src={modalCase.imageUrl} alt={`Case ${modalCase.id}`} className="w-full h-full object-contain" />
+                                        ) : (
+                                            <span className="text-stone-200 font-black text-xl uppercase tracking-widest">Reference Case {modalCase.id}</span>
+                                        )}
+                                    </div>
+                                    <div className="space-y-6 mb-8">
+                                        {modalCase.path.map((stepStr, idx) => {
+                                            const isLast = idx === modalCase.path.length - 1;
+                                            const safe = isPureNoViolation(stepStr);
+                                            let boxClass = "bg-stone-50 text-stone-600 border-stone-100";
+                                            if (isLast) boxClass = safe ? "bg-green-600 text-white font-black" : "bg-orange-600 text-white font-black shadow-lg";
+                                            return (
+                                                <div key={idx} className="flex items-start">
+                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs bg-stone-200 text-stone-500 mr-4 shrink-0">{idx + 1}</div>
+                                                    <div className={`p-4 rounded-xl flex-grow border text-sm leading-relaxed ${boxClass}`}>
+                                                        {formatPathText(stepStr)}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <button onClick={() => setModalCase(null)} className="w-full py-4 bg-stone-900 text-white rounded-xl font-black text-xs tracking-widest uppercase hover:bg-orange-600 transition-all">
+                                        {t.close}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
