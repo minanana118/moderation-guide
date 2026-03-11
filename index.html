@@ -15,6 +15,7 @@
         ::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 10px; }
         .modal-overlay { background: rgba(28, 25, 23, 0.8); backdrop-filter: blur(12px); }
         strong { @apply font-extrabold text-stone-900; }
+        .pw-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f8f7f5; }
     </style>
 </head>
 <body>
@@ -39,7 +40,7 @@
             { id: 13, imageUrl: "./images/case13.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): 해당 없음", "Section C (하체): C-5 삼각팬티 형태인지 극단적인 짧은 반바지인지 100% 확신할 수 없음 (비고: 허벅지 스타킹 = 일반 복장으로 간주)", "신고 거부"] },
             { id: 14, imageUrl: "./images/case14.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B1 - 속옷이나 수영복 형태가 아닌 일반 의류", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 줌인 사진 X", "Section C (하체): C-4 엉덩이가 가려졌는지 100% 확인할 수 없는 경우(긴 상의가 엉덩이를 살짝 덮는 등)", "신고 거부"] },
             { id: 15, imageUrl: "./images/case15.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): 해당 없음", "Section C (하체): C-2 삼각팬티 형태", "배경을 100% 확인할 수 없음", "치골 노출 + 실존 인물 전체 방송", "Level 2, 19+ 방송 - No Violation"] },
-            { id: 16, imageUrl: "./images/case16.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): A-6 성기 부위에 옷을 입었으나 곡선을 통해 명확히 식별 가능", "일러스트/마네킹(실물과 비교 시 신체 비율, 렌더링 스타일, 질감의 사실적 비율이 80% 초과)", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
+            { id: 16, imageUrl: "./images/case16.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): A-6 성기 부위에 옷을 입었으나 곡선을 통해 명확히 식別 가능", "일러스트/마네킹(실물과 비교 시 신체 비율, 렌더링 스타일, 질감의 사실적 비율이 80% 초과)", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
             { id: 17, imageUrl: "./images/case17.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): B1 - 속옷이나 수영복 형태가 아닌 일반 의류", "가슴의 가장 높은 부위(유두 근처)에 손을 올린 X", "옷으로 가려지지 않은 가슴 면적이 \"가슴 전체\" <= 65%", "가슴 줌인 사진 X", "Section C (하체): C-4 엉덩이가 가려졌는지 100% 확인할 수 없는 경우(긴 상의가 엉덩이를 살짝 덮는 등)", "신고 거부"] },
             { id: 18, imageUrl: "./images/case18.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): 해당 없음", "Section B (상체): 해당 없음", "Section C (하체): C-3 삼각팬티 형태가 아니거나 옷/물체/신체 부위로 가려진 경우:", "엉덩이 살이 부분적으로 가려진 경우(일반 너비 T팬티, 시스루, 망사 스타킹, 서스펜더 스타킹, 성인용 의상, 코스프레 의상)", "신고 거부"] },
             { id: 19, imageUrl: "./images/case19.jpg", path: ["공통 원칙: 해당 없음", "Section A (Nudity & Sexual Activity): A-7 뒷모습 엉덩이가 옷을 입지 않고 완전히 노출", "일러스트/마네킹(실물과 비교 시 신체 비율, 렌더링 스타일, 질감의 사실적 비율이 80% 초과)", "전체 방송 - Level 2, 19+ 방송 - No Violation"] },
@@ -48,16 +49,28 @@
         ];
 
         const LANGUAGES = {
-            KR: { title: "이미지 판정 예시", detail: "판단 로직 상세 경로", close: "닫기", path_btn: "경로 상세 확인", broadcast: "방송", final_result: "최종 판정 결과", nv: "신고 거부", lv: "Level" },
-            JP: { title: "画像判定例示", detail: "判定ロジック詳細経路", close: "閉じる", path_btn: "経路詳細を確認", broadcast: "放送", final_result: "最終判定結果", nv: "申告拒否", lv: "レベル" },
-            ZH: { title: "圖像判定範例", detail: "邏輯判斷詳細路徑", close: "關閉", path_btn: "查看詳細路徑", broadcast: "直播", final_result: "最終判定結果", nv: "無違規", lv: "等級" }
+            KR: { title: "이미지 판정 예시", detail: "판단 로직 상세 경로", close: "닫기", path_btn: "경로 상세 확인", broadcast: "방송", final_result: "최종 판정 결과", nv: "신고 거부", lv: "Level", pw_label: "비밀번호를 입력하세요", pw_btn: "확인" },
+            JP: { title: "画像判定例示", detail: "判定ロジック詳細経路", close: "閉じる", path_btn: "経路詳細を確認", broadcast: "放送", final_result: "最終判定結果", nv: "申告拒否", lv: "レベル", pw_label: "パスワードを入力してください", pw_btn: "確認" },
+            ZH: { title: "圖像判定範例", detail: "邏輯判斷詳細路徑", close: "關閉", path_btn: "查看詳細路徑", broadcast: "直播", final_result: "最終判定結果", nv: "無違規", lv: "等級", pw_label: "請輸入密碼", pw_btn: "確認" }
         };
 
         const App = () => {
-            const [lang, setLang] = useState('ZH'); 
+            const [lang, setLang] = useState('KR'); // 預設語言設為 KR
             const [modalCase, setModalCase] = useState(null);
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [password, setPassword] = useState('');
 
             const t = LANGUAGES[lang];
+
+            const handleAuth = (e) => {
+                e.preventDefault();
+                if (password === '1234') {
+                    setIsAuthenticated(true);
+                } else {
+                    alert('Wrong Password!');
+                    setPassword('');
+                }
+            };
 
             const isPureNoViolation = (text) => {
                 const lowerText = text.toLowerCase();
@@ -74,7 +87,7 @@
                 if (lang === 'ZH') {
                     formatted = formatted.replace(/전체/g, '全體')
                                        .replace(/방송/g, '直播')
-                                       .replace(/해당 없음/g, '無相關')
+                                       .replace(/해당 없음/g, '不適用')
                                        .replace(/Level/g, '等級');
                 } else if (lang === 'JP') {
                     formatted = formatted.replace(/전체/g, '全体')
@@ -86,7 +99,7 @@
             };
 
             const formatPathText = (text) => {
-                const prefixes = ["공통 원칙:", "Section A", "Section B", "Section C", "전체 방송", "19+ 방송", "전체直播", "19+直播", "전체 放送", "19+ 放送", "全體直播", "19+直播", "全体放送", "19+放送", "等級", "레벨", "Level", "無相關", "無違規", "申告拒否", "該当なし"];
+                const prefixes = ["공통 원칙:", "Section A", "Section B", "Section C", "전체 방송", "19+ 방송", "전체直播", "19+直播", "전체 放送", "19+ 放送", "全體直播", "19+直播", "全体放送", "19+放送", "等級", "레벨", "Level", "不適用", "無違規", "申告拒否", "該当なし"];
                 let translated = translateText(text);
                 
                 let htmlContent = translated;
@@ -98,6 +111,30 @@
                 return <span dangerouslySetInnerHTML={{ __html: htmlContent }} />;
             };
 
+            // 密碼輸入畫面
+            if (!isAuthenticated) {
+                return (
+                    <div className="pw-container px-4">
+                        <form onSubmit={handleAuth} className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-stone-200 w-full max-w-md text-center">
+                            <h2 className="text-2xl font-black mb-6 tracking-tighter">RESTRICTED ACCESS</h2>
+                            <p className="text-stone-500 mb-8 text-sm">{t.pw_label}</p>
+                            <input 
+                                type="password" 
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full p-4 mb-6 border border-stone-200 rounded-2xl text-center focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                                placeholder="****"
+                                autoFocus
+                            />
+                            <button type="submit" className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-orange-600 transition-all">
+                                {t.pw_btn}
+                            </button>
+                        </form>
+                    </div>
+                );
+            }
+
+            // 主內容畫面
             return (
                 <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
                     <div className="flex flex-col md:flex-row justify-between items-center md:items-end mb-12 gap-6">
@@ -108,7 +145,7 @@
                         <div className="flex space-x-1 bg-stone-200/50 p-1 rounded-xl border border-stone-200">
                             {Object.keys(LANGUAGES).map(l => (
                                 <button key={l} onClick={() => setLang(l)} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white shadow text-orange-600' : 'text-stone-500'}`}>
-                                    {l === 'KR' ? 'KR' : l === 'JP' ? 'JP' : 'ZH'}
+                                    {l}
                                 </button>
                             ))}
                         </div>
